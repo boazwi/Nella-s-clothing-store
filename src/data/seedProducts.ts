@@ -4,6 +4,17 @@ import type { Product } from "@/types";
 // integer cents (e.g. 24900 = ₪249.00). Images are local SVG placeholders.
 export const seedProducts: Product[] = [
   {
+    id: "prod-round-glasses",
+    name: "Round Reading Glasses",
+    description:
+      "Retro-inspired round frames in deep navy. Lightweight, timeless, and easy to wear all day.",
+    priceCents: 18000,
+    currency: "ILS",
+    imageUrl: "/products/20260727_133112.jpg",
+    createdAt: "2026-07-07T09:00:00.000Z",
+    updatedAt: "2026-07-07T09:00:00.000Z",
+  },
+  {
     id: "prod-linen-dress",
     name: "Linen Summer Dress",
     description:
