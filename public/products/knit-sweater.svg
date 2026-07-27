@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750" role="img" aria-label="Cozy Knit Sweater">
+  <rect width="600" height="750" fill="#F0E9DF"/>
+  <path d="M215 210 L300 185 L385 210 L445 275 L405 330 L405 510 L195 510 L195 330 L155 275 Z" fill="#C9B79A"/>
+  <path d="M255 210 Q300 250 345 210" fill="none" stroke="#8A7859" stroke-width="5"/>
+  <path d="M215 260 L405 260 M215 300 L405 300 M215 340 L405 340" stroke="#B3A184" stroke-width="3"/>
+  <text x="300" y="640" text-anchor="middle" font-family="Georgia, serif" font-size="30" fill="#4A2C40">Cozy Knit Sweater</text>
+</svg>

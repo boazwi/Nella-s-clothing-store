@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750" role="img" aria-label="Tailored Wide Trousers">
+  <rect width="600" height="750" fill="#E9E6E1"/>
+  <path d="M240 190 L360 190 L375 250 L360 560 L315 560 L300 320 L285 560 L240 560 L225 250 Z" fill="#8C8579"/>
+  <path d="M240 190 L360 190" stroke="#5E594F" stroke-width="6"/>
+  <path d="M300 250 L300 560" stroke="#6E685D" stroke-width="3"/>
+  <text x="300" y="650" text-anchor="middle" font-family="Georgia, serif" font-size="30" fill="#4A2C40">Tailored Wide Trousers</text>
+</svg>

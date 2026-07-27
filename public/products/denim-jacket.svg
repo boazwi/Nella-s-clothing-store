@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750" role="img" aria-label="Classic Denim Jacket">
+  <rect width="600" height="750" fill="#E4E9EF"/>
+  <path d="M210 200 L300 170 L390 200 L440 260 L400 320 L400 520 L200 520 L200 320 L160 260 Z" fill="#6E86A8"/>
+  <path d="M300 180 L300 520" stroke="#3F5473" stroke-width="4"/>
+  <path d="M300 180 L250 240 M300 180 L350 240" stroke="#3F5473" stroke-width="4" fill="none"/>
+  <text x="300" y="640" text-anchor="middle" font-family="Georgia, serif" font-size="30" fill="#4A2C40">Classic Denim Jacket</text>
+</svg>

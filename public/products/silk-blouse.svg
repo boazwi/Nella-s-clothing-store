@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750" role="img" aria-label="Silk Button Blouse">
+  <rect width="600" height="750" fill="#F3E8EC"/>
+  <path d="M220 200 L300 175 L380 200 L430 260 L395 315 L395 505 L205 505 L205 315 L170 260 Z" fill="#E7C9D3"/>
+  <path d="M300 185 L300 505" stroke="#B98BA0" stroke-width="3"/>
+  <circle cx="300" cy="300" r="5" fill="#B98BA0"/>
+  <circle cx="300" cy="360" r="5" fill="#B98BA0"/>
+  <circle cx="300" cy="420" r="5" fill="#B98BA0"/>
+  <text x="300" y="635" text-anchor="middle" font-family="Georgia, serif" font-size="30" fill="#4A2C40">Silk Button Blouse</text>
+</svg>

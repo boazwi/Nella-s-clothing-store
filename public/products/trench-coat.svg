@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750" role="img" aria-label="Classic Trench Coat">
+  <rect width="600" height="750" fill="#EFEAE0"/>
+  <path d="M215 195 L300 170 L385 195 L440 265 L405 320 L410 560 L190 560 L195 320 L160 265 Z" fill="#C9B38C"/>
+  <path d="M300 180 L270 230 L300 560 M300 180 L330 230 L300 560" fill="none" stroke="#8F7A52" stroke-width="3"/>
+  <rect x="248" y="300" width="10" height="10" fill="#8F7A52"/>
+  <rect x="342" y="300" width="10" height="10" fill="#8F7A52"/>
+  <rect x="248" y="360" width="10" height="10" fill="#8F7A52"/>
+  <rect x="342" y="360" width="10" height="10" fill="#8F7A52"/>
+  <text x="300" y="650" text-anchor="middle" font-family="Georgia, serif" font-size="30" fill="#4A2C40">Classic Trench Coat</text>
+</svg>

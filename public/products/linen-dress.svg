@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750" role="img" aria-label="Linen Summer Dress">
+  <rect width="600" height="750" fill="#EFE7DC"/>
+  <path d="M240 170 L300 210 L360 170 L400 250 L360 300 L370 560 L230 560 L240 300 L200 250 Z" fill="#D9A5A0"/>
+  <path d="M240 170 L300 210 L360 170" fill="none" stroke="#4A2C40" stroke-width="4"/>
+  <text x="300" y="660" text-anchor="middle" font-family="Georgia, serif" font-size="30" fill="#4A2C40">Linen Summer Dress</text>
+</svg>
