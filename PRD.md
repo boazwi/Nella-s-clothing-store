@@ -197,10 +197,10 @@ const resultUrl = URL.createObjectURL(blob); // render, and revoke on cleanup
 ```
 
 ### 7.2 Garment Image Sourcing
-The garment (`image2`) comes from the selected product's image. The frontend must fetch that product image as a `Blob`/`File` before appending it to the form (fetch the image URL → `blob()`), so both fields are true file uploads.
+The garment (`image2`) comes from the selected product's image. The frontend loads that product image and **rasterizes it to a PNG** `File` (via a canvas) before appending it to the form, so both fields are true raster file uploads. **The try-on backend cannot process vector images (SVG)** — this normalization guarantees a valid raster garment regardless of the product image's source format.
 
 ### 7.3 Client-Side Image Validation
-- **Accepted formats:** JPG/JPEG, PNG, WebP.
+- **Accepted formats:** JPG/JPEG, PNG, WebP. **Not SVG** — vector images are not valid try-on inputs.
 - **Max file size:** 10 MB per image (configurable constant).
 - **Min dimensions:** recommend ≥ 512px on the shorter side (warn if smaller).
 - Reject unsupported types with a clear inline message; show a preview thumbnail after selection.
@@ -263,6 +263,7 @@ Auth and product persistence services will expose their own endpoints later; kee
 - Tech stack: **Next.js (App Router) + React + TypeScript + Tailwind CSS**.
 - Auth and product persistence are placeholders this release, built behind swappable service interfaces.
 - The webhook accepts `multipart/form-data` and returns a raw binary image.
+- **Confirmed:** the webhook requires **raster** input images (JPG/PNG/WebP) and rejects SVG. The frontend normalizes the garment image to PNG before sending (§7.2).
 
 **Open Questions**
 1. Does the webhook require any auth header/token, or is it open? (Assumed open for now.)

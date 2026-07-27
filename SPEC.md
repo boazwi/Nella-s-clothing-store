@@ -230,12 +230,32 @@ export async function generate({ personFile, garmentFile }: TryOnRequest): Promi
 ```
 > **Env var note:** the raw webhook URL lives in `TRYON_WEBHOOK_URL` (server-only, **not** `NEXT_PUBLIC_`) so it isn't exposed to the browser. This supersedes the PRD's client-var suggestion now that a proxy is used.
 
-### 5.4 Garment file resolution
+### 5.4 Garment file resolution (rasterized to PNG)
+The n8n try-on backend **cannot process vector images (SVG)** — it requires a
+raster image. Because product images may be any format (the seed catalog even
+used SVG placeholders), the garment image is normalized to a raster **PNG** on
+the client before upload: load the image, draw it onto a canvas (over a white
+background), and export a PNG `File`. This guarantees `image2` is always a valid
+raster input regardless of the product image's source format.
+
 ```ts
-async function urlToFile(url: string, name: string): Promise<File> {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new File([blob], name, { type: blob.type });
+async function imageUrlToPngFile(url: string, name: string): Promise<File> {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  await new Promise<void>((res, rej) => {
+    img.onload = () => res();
+    img.onerror = () => rej(new Error("load failed"));
+    img.src = url;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth || 1024;
+  canvas.height = img.naturalHeight || 1024;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/png"));
+  return new File([blob], name, { type: "image/png" });
 }
 ```
 
@@ -303,6 +323,7 @@ export const productSchema = z.object({
 });
 ```
 - Recommend (warn, don't block) ≥ 512px shorter side; optional client-side downscale before upload for large mobile photos.
+- **Raster only:** `IMAGE_MIME` intentionally excludes SVG. Neither the person photo nor product images may be vector — the try-on backend rejects SVG. Product/garment images are additionally normalized to PNG at send time (§5.4), so admins should still upload raster product photos (JPG/PNG/WebP).
 
 ---
 
@@ -363,7 +384,7 @@ TRYON_WEBHOOK_URL=https://boazwi.app.n8n.cloud/webhook/bae811b4-033e-45f8-b7b0-0
 ## 12. Build, Test, Deploy
 
 - **Scripts:** `dev`, `build`, `start`, `lint`, `test`, `test:e2e`.
-- **Unit tests:** validation utils, service mocks, try-on state machine, `urlToFile`.
+- **Unit tests:** validation utils, service mocks, try-on state machine, `imageUrlToPngFile`.
 - **Component tests:** `ImageUploader` (accept/reject files), `ResultView` (renders/downloads), `ProductForm` (validation).
 - **E2E (Playwright):** register → browse → open product → try-on happy path (webhook mocked) → result; admin add/edit product.
 - **Deploy (future):** Vercel; set `TRYON_WEBHOOK_URL`; verify `maxDuration` covers generation time.

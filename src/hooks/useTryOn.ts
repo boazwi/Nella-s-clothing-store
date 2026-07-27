@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Product, TryOnStatus } from "@/types";
 import { generate, tryOnErrorMessage } from "@/services/tryOn";
-import { urlToFile } from "@/lib/image";
+import { imageUrlToPngFile } from "@/lib/image";
 
 interface TryOnState {
   status: TryOnStatus;
@@ -35,7 +35,7 @@ export function useTryOn() {
       revoke();
       setState({ status: "submitting", resultUrl: null, errorMessage: null });
       try {
-        const garmentFile = await urlToFile(garment.imageUrl, `${garment.id}.img`);
+        const garmentFile = await imageUrlToPngFile(garment.imageUrl, `${garment.id}.png`);
         const { imageUrl } = await generate({ personFile, garmentFile });
         resultUrlRef.current = imageUrl;
         setState({ status: "success", resultUrl: imageUrl, errorMessage: null });

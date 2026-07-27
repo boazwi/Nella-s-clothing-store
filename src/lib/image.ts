@@ -1,15 +1,41 @@
 /**
- * Fetch an image URL and turn it into a File so it can be appended to a
- * multipart/form-data body (used to resolve the selected garment image).
+ * Load an image URL, draw it onto a canvas, and export a raster PNG File.
+ *
+ * The try-on backend (n8n) cannot process vector images (SVG), so the garment
+ * image — whatever its source format — is normalized to PNG here before being
+ * sent. A white background is painted first so transparent areas render
+ * predictably. Used to resolve the selected garment image (image2).
  */
-export async function urlToFile(url: string, filename: string): Promise<File> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Failed to load image: ${res.status}`);
-  }
-  const blob = await res.blob();
-  const type = blob.type || "image/jpeg";
-  return new File([blob], filename, { type });
+export async function imageUrlToPngFile(url: string, filename: string): Promise<File> {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+    img.src = url;
+  });
+
+  const width = img.naturalWidth || 1024;
+  const height = img.naturalHeight || 1024;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context is not available.");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Failed to rasterize image."))),
+      "image/png",
+    );
+  });
+
+  return new File([blob], filename, { type: "image/png" });
 }
 
 /** Merge Tailwind/conditional class names, dropping falsy values. */
