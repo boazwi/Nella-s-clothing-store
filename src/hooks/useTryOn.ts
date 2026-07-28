@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Product, TryOnStatus } from "@/types";
 import { generate, tryOnErrorMessage } from "@/services/tryOn";
-import { imageUrlToPngFile } from "@/lib/image";
+import { compressImageFile, imageUrlToPngFile } from "@/lib/image";
+import {
+  MAX_UPLOAD_DIMENSION,
+  UPLOAD_COMPRESSION_THRESHOLD_BYTES,
+  UPLOAD_JPEG_QUALITY,
+} from "@/lib/constants";
 
 interface TryOnState {
   status: TryOnStatus;
@@ -35,8 +40,25 @@ export function useTryOn() {
       revoke();
       setState({ status: "submitting", resultUrl: null, errorMessage: null });
       try {
-        const garmentFile = await imageUrlToPngFile(garment.imageUrl, `${garment.id}.png`);
-        const { imageUrl } = await generate({ personFile, garmentFile });
+        let garmentFile = await imageUrlToPngFile(
+          garment.imageUrl,
+          `${garment.id}.png`,
+          MAX_UPLOAD_DIMENSION,
+        );
+        if (garmentFile.size > UPLOAD_COMPRESSION_THRESHOLD_BYTES) {
+          garmentFile = await compressImageFile(garmentFile, MAX_UPLOAD_DIMENSION, UPLOAD_JPEG_QUALITY);
+        }
+
+        let uploadPersonFile = personFile;
+        if (uploadPersonFile.size > UPLOAD_COMPRESSION_THRESHOLD_BYTES) {
+          uploadPersonFile = await compressImageFile(
+            uploadPersonFile,
+            MAX_UPLOAD_DIMENSION,
+            UPLOAD_JPEG_QUALITY,
+          );
+        }
+
+        const { imageUrl } = await generate({ personFile: uploadPersonFile, garmentFile });
         resultUrlRef.current = imageUrl;
         setState({ status: "success", resultUrl: imageUrl, errorMessage: null });
       } catch (error) {
