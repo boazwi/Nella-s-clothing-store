@@ -42,7 +42,7 @@ export function Navbar() {
             <div className="flex items-center gap-2">
               <span className="hidden items-center gap-1 text-sm text-muted sm:flex">
                 <UserIcon className="h-4 w-4" aria-hidden="true" />
-                {session.user.email}
+                {session.user.fullName || session.user.email}
               </span>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" aria-hidden="true" />

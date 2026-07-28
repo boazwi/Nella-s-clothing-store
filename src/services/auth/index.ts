@@ -1,7 +1,8 @@
-import { mockAuthService } from "./mockAuthService";
+import { supabaseAuthService } from "./supabaseAuthService";
 import type { AuthService } from "./types";
 
 // Swap this single binding to change the auth backend for the whole app.
-export const authService: AuthService = mockAuthService;
+// `mockAuthService` remains available as a test double.
+export const authService: AuthService = supabaseAuthService;
 
 export type { AuthService } from "./types";

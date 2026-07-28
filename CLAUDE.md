@@ -33,12 +33,32 @@ decisions that are easy to forget.
   see `compressImageFile` in `src/lib/image.ts` and thresholds in
   `src/lib/constants.ts`. Runs silently; no user-facing step.
 
+## Auth — real accounts via Supabase Auth
+- Customers **sign up** (full name + email + password), **log in**, and **log out**.
+  Backed by **Supabase Auth** through the `AuthService` seam in `src/services/auth`
+  (`supabaseAuthService`); `mockAuthService` is retained only as a test double. Swap
+  the single binding in `src/services/auth/index.ts` to change backends — no UI changes.
+- Browser client: `src/lib/supabase/client.ts` (session in localStorage, auto-refresh).
+  `AuthContext` subscribes to `onAuthStateChange` for live session sync.
+- **Full name** is stored in Supabase **user metadata** (`user_metadata.full_name`),
+  not a profiles table (yet). **Admin role** is still derived client-side from the
+  `@admin.nella` email convention (real role hardening via `app_metadata` + RLS is future).
+- **Email confirmation is OFF** (immediate login) — a Supabase dashboard setting.
+- Env vars (public, browser-safe): `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Set in `.env.local` **and** Vercel (Production +
+  Preview), same rules as `TRYON_WEBHOOK_URL`.
+
 ## Placeholders this release (behind swappable service interfaces)
-- **Auth** — localStorage mock in `src/services/auth`. Any credentials work.
-  Emails ending in `@admin.nella` get the **admin** role (to reach `/admin`).
 - **Products** — in-memory seed in `src/services/products` (resets on reload).
-- Real auth / DB / payments / Vercel storage are future scope. Swap the single
+- DB persistence / payments / Vercel storage are future scope. Swap the single
   binding in each service's `index.ts` to change backends — no UI changes.
+
+## MCP servers
+- **Supabase** MCP server registered at project scope (`.mcp.json`, `--transport http`),
+  project ref `clvsixocontdqxvyufsn` — likely the target for the "real DB" swap
+  mentioned above. Needs per-session approval (`/mcp` in each new Claude Code
+  session) before its tools are usable; a session started before the server was
+  added won't see it until restarted.
 
 ## Conventions
 - Money stored as **integer cents**; default currency **ILS ₪**. Format via `src/lib/format.ts`.

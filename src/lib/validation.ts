@@ -30,5 +30,7 @@ export const loginSchema = z.object({
 });
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
-export const registerSchema = loginSchema;
+export const registerSchema = loginSchema.extend({
+  fullName: z.string().min(1, "Full name is required."),
+});
 export type RegisterFormValues = z.infer<typeof registerSchema>;

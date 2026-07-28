@@ -1,16 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { loginSchema, type LoginFormValues } from "@/lib/validation";
+import { loginSchema, registerSchema } from "@/lib/validation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Card } from "@/components/ui/Card";
+
+interface FormValues {
+  fullName?: string;
+  email: string;
+  password: string;
+}
+
+/** Map a Supabase auth error to friendly, user-facing copy. */
+function friendlyAuthError(error: unknown, isLogin: boolean): string {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  if (message.includes("already registered") || message.includes("already been registered")) {
+    return "That email is already registered. Try logging in instead.";
+  }
+  if (message.includes("invalid login credentials")) {
+    return "Wrong email or password. Please try again.";
+  }
+  if (message.includes("email not confirmed")) {
+    return "Please confirm your email address before logging in.";
+  }
+  if (message.includes("rate limit") || message.includes("over_email_send")) {
+    return "Too many attempts just now. Please wait a minute and try again.";
+  }
+  if (message.includes("password")) {
+    return "Password must be at least 6 characters.";
+  }
+  return isLogin
+    ? "We couldn't log you in. Please try again."
+    : "We couldn't create your account. Please try again.";
+}
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const { login, signUp } = useAuth();
@@ -18,28 +47,31 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const searchParams = useSearchParams();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const isLogin = mode === "login";
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(isLogin ? loginSchema : registerSchema) as Resolver<FormValues>,
+  });
 
-  const isLogin = mode === "login";
   const heading = isLogin ? "Welcome back" : "Create your account";
   const cta = isLogin ? "Log in" : "Sign up";
 
-  async function onSubmit(values: LoginFormValues) {
+  async function onSubmit(values: FormValues) {
     setSubmitError(null);
     try {
       if (isLogin) {
         await login(values.email, values.password);
       } else {
-        await signUp(values.email, values.password);
+        await signUp(values.fullName ?? "", values.email, values.password);
       }
       const next = searchParams.get("next") || "/";
       router.push(next);
-    } catch {
-      setSubmitError("Something went wrong. Please try again.");
+    } catch (error) {
+      setSubmitError(friendlyAuthError(error, isLogin));
     }
   }
 
@@ -51,6 +83,15 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        {!isLogin && (
+          <Input
+            label="Full name"
+            type="text"
+            autoComplete="name"
+            error={errors.fullName?.message}
+            {...register("fullName")}
+          />
+        )}
         <Input
           label="Email"
           type="email"

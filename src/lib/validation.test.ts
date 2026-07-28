@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateImageFile, productSchema } from "./validation";
+import { validateImageFile, productSchema, registerSchema, loginSchema } from "./validation";
 import { MAX_IMAGE_BYTES } from "./constants";
 
 function makeFile(type: string, size: number): File {
@@ -47,5 +47,32 @@ describe("productSchema", () => {
       currency: "ILS",
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("auth schemas", () => {
+  it("registerSchema requires a full name", () => {
+    expect(
+      registerSchema.safeParse({ email: "a@b.com", password: "secret1" }).success,
+    ).toBe(false);
+    expect(
+      registerSchema.safeParse({
+        fullName: "Ada",
+        email: "a@b.com",
+        password: "secret1",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("loginSchema does not require a full name", () => {
+    expect(
+      loginSchema.safeParse({ email: "a@b.com", password: "secret1" }).success,
+    ).toBe(true);
+  });
+
+  it("rejects short passwords", () => {
+    expect(loginSchema.safeParse({ email: "a@b.com", password: "123" }).success).toBe(
+      false,
+    );
   });
 });

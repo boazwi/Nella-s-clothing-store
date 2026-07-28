@@ -131,17 +131,22 @@ export type TryOnError =
 
 All backend interaction goes through these interfaces so mock/placeholder implementations can be swapped for real ones (auth provider, DB, n8n) with **no UI changes**.
 
-### 4.1 authService *(placeholder: localStorage mock)*
+### 4.1 authService *(Supabase Auth)*
 ```ts
 export interface AuthService {
-  signUp(email: string, password: string): Promise<Session>;
+  signUp(fullName: string, email: string, password: string): Promise<Session>;
   login(email: string, password: string): Promise<Session>;
   logout(): Promise<void>;
   getSession(): Promise<Session | null>;
+  subscribe?(onChange: (session: Session | null) => void): () => void;
 }
 ```
-- Mock stores a fake session in `localStorage`; any password accepted (dev only).
-- Real impl (future): Supabase/Clerk adapter behind the same interface.
+- **Real impl:** `supabaseAuthService` (browser client in `src/lib/supabase/client.ts`).
+  Full name is stored in Supabase `user_metadata.full_name`; `subscribe` wraps
+  `onAuthStateChange`. Admin role is derived from the `@admin.nella` email convention
+  (future: `app_metadata` + RLS). Email confirmation is disabled (immediate login).
+- `mockAuthService` implements the same interface as a **test double** only.
+- Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (public keys).
 
 ### 4.2 productService *(placeholder: local/seed store)*
 ```ts

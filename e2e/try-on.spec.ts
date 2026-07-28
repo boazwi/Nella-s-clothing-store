@@ -24,9 +24,11 @@ test("shopper can browse, register, and complete a try-on (webhook mocked)", asy
   await page.getByText("Linen Summer Dress").first().click();
   await page.getByRole("button", { name: /try it on/i }).click();
 
-  // Not logged in -> redirected to login; register instead
+  // Not logged in -> redirected to login; register instead.
+  // NOTE: this now hits real Supabase Auth, so use a unique email per run.
   await page.goto("/register");
-  await page.getByLabel("Email").fill("shopper@example.com");
+  await page.getByLabel("Full name").fill("Test Shopper");
+  await page.getByLabel("Email").fill(`shopper+${Date.now()}@example.com`);
   await page.getByLabel("Password").fill("password123");
   await page.getByRole("button", { name: /sign up/i }).click();
 

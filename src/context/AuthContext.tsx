@@ -9,7 +9,7 @@ interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (fullName: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -25,11 +25,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(setSession)
       .finally(() => setLoading(false));
+
+    // Keep the session in sync with the backend (login, logout, token refresh,
+    // cross-tab). No-op for backends that don't implement `subscribe`.
+    const unsubscribe = authService.subscribe?.(setSession);
+    return () => unsubscribe?.();
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    setSession(await authService.signUp(email, password));
-  }, []);
+  const signUp = useCallback(
+    async (fullName: string, email: string, password: string) => {
+      setSession(await authService.signUp(fullName, email, password));
+    },
+    [],
+  );
 
   const login = useCallback(async (email: string, password: string) => {
     setSession(await authService.login(email, password));

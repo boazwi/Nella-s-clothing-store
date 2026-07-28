@@ -10,10 +10,11 @@ function roleForEmail(email: string): User["role"] {
   return email.toLowerCase().endsWith("@admin.nella") ? "admin" : "shopper";
 }
 
-function makeSession(email: string): Session {
+function makeSession(email: string, fullName = ""): Session {
   const user: User = {
     id: crypto.randomUUID(),
     email,
+    fullName,
     role: roleForEmail(email),
   };
   return { user };
@@ -31,8 +32,8 @@ function persist(session: Session): Session {
  * localStorage. NOT for production use.
  */
 export const mockAuthService: AuthService = {
-  async signUp(email) {
-    return persist(makeSession(email));
+  async signUp(fullName, email) {
+    return persist(makeSession(email, fullName));
   },
   async login(email) {
     return persist(makeSession(email));
