@@ -51,4 +51,5 @@ export type TryOnError =
   | { kind: "timeout" }
   | { kind: "server"; status: number }
   | { kind: "non-image" }
-  | { kind: "network" };
+  | { kind: "network" }
+  | { kind: "payment-required" };

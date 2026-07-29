@@ -17,4 +17,10 @@ export interface AuthService {
    * event stream can omit this.
    */
   subscribe?(onChange: (session: Session | null) => void): () => void;
+  /**
+   * Optional: force a token refresh, picking up server-side changes to
+   * app_metadata (e.g. after a Stripe webhook updates subscription status)
+   * without waiting for the ambient auto-refresh timer.
+   */
+  refreshSession?(): Promise<Session | null>;
 }

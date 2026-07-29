@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import type { Product } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 import { useProduct } from "@/hooks/useProducts";
 import { useTryOn } from "@/hooks/useTryOn";
 import { ImageUploader } from "./ImageUploader";
@@ -16,17 +17,26 @@ import { Card } from "@/components/ui/Card";
 
 export function TryOnFlow() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const preselectId = searchParams.get("productId") ?? "";
   const { data: preselected } = useProduct(preselectId);
+  const { session } = useAuth();
 
   const [personFile, setPersonFile] = useState<File | null>(null);
   const [garment, setGarment] = useState<Product | null>(null);
-  const { status, resultUrl, errorMessage, run, reset } = useTryOn();
+  const { status, resultUrl, errorMessage, paymentRequired, run, reset } = useTryOn();
 
   // Apply the product passed via ?productId= once it loads.
   useEffect(() => {
     if (preselected) setGarment(preselected);
   }, [preselected]);
+
+  // A still-valid client token can be rejected server-side if the
+  // subscription lapsed after the token was issued — bounce to the pay flow
+  // instead of showing a generic error in that case.
+  useEffect(() => {
+    if (paymentRequired) router.replace("/payment-required");
+  }, [paymentRequired, router]);
 
   const submitting = status === "submitting";
   const canSubmit = Boolean(personFile && garment) && !submitting;
@@ -68,7 +78,7 @@ export function TryOnFlow() {
 
       {/* Step 3: generate */}
       <div className="md:col-span-2">
-        {status === "error" && errorMessage && (
+        {status === "error" && errorMessage && !paymentRequired && (
           <Alert tone="error" className="mb-4">
             {errorMessage}
           </Alert>
@@ -77,7 +87,9 @@ export function TryOnFlow() {
           size="lg"
           className="w-full sm:w-auto"
           disabled={!canSubmit}
-          onClick={() => personFile && garment && run(personFile, garment)}
+          onClick={() =>
+            personFile && garment && session?.token && run(personFile, garment, session.token)
+          }
         >
           <Sparkles className="h-5 w-5" aria-hidden="true" />
           {status === "error" ? "Try again" : "Generate my try-on"}

@@ -21,6 +21,10 @@ describe("tryOnErrorMessage", () => {
     expect(tryOnErrorMessage({ kind: "non-image" })).toMatch(/try again/i);
   });
 
+  it("maps payment-required errors", () => {
+    expect(tryOnErrorMessage({ kind: "payment-required" })).toMatch(/subscription/i);
+  });
+
   it("falls back for unknown errors", () => {
     expect(tryOnErrorMessage(new Error("boom"))).toMatch(/something went wrong/i);
   });

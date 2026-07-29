@@ -16,6 +16,8 @@ export function tryOnErrorMessage(error: unknown): string {
       return "We couldn't create your try-on right now. Please try again.";
     case "network":
       return "You appear to be offline. Check your connection and try again.";
+    case "payment-required":
+      return "An active subscription is required to use try-on.";
     default:
       return "Something went wrong. Please try again.";
   }

@@ -67,4 +67,11 @@ export const supabaseAuthService: AuthService = {
     });
     return () => data.subscription.unsubscribe();
   },
+
+  async refreshSession() {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error || !data.session) return null;
+    return { user: mapUser(data.session.user), token: data.session.access_token };
+  },
 };

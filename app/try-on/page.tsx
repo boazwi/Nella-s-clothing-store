@@ -9,7 +9,7 @@ export default function TryOnPage() {
         <h1 className="font-serif text-3xl text-ink">Virtual Try-On</h1>
         <p className="mt-1 text-muted">See any piece on your own photo.</p>
       </header>
-      <RequireAuth>
+      <RequireAuth requirePaid>
         <Suspense>
           <TryOnFlow />
         </Suspense>

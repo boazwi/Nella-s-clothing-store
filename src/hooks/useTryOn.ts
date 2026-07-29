@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Product, TryOnStatus } from "@/types";
+import type { Product, TryOnError, TryOnStatus } from "@/types";
 import { generate, tryOnErrorMessage } from "@/services/tryOn";
 import { compressImageFile, imageUrlToPngFile } from "@/lib/image";
 import {
@@ -14,9 +14,15 @@ interface TryOnState {
   status: TryOnStatus;
   resultUrl: string | null;
   errorMessage: string | null;
+  paymentRequired: boolean;
 }
 
-const INITIAL: TryOnState = { status: "idle", resultUrl: null, errorMessage: null };
+const INITIAL: TryOnState = {
+  status: "idle",
+  resultUrl: null,
+  errorMessage: null,
+  paymentRequired: false,
+};
 
 /**
  * Encapsulates the try-on state machine: idle → submitting → success | error.
@@ -36,9 +42,9 @@ export function useTryOn() {
   useEffect(() => revoke, [revoke]);
 
   const run = useCallback(
-    async (personFile: File, garment: Product) => {
+    async (personFile: File, garment: Product, accessToken: string) => {
       revoke();
-      setState({ status: "submitting", resultUrl: null, errorMessage: null });
+      setState({ status: "submitting", resultUrl: null, errorMessage: null, paymentRequired: false });
       try {
         let garmentFile = await imageUrlToPngFile(
           garment.imageUrl,
@@ -58,14 +64,20 @@ export function useTryOn() {
           );
         }
 
-        const { imageUrl } = await generate({ personFile: uploadPersonFile, garmentFile });
+        const { imageUrl } = await generate({
+          personFile: uploadPersonFile,
+          garmentFile,
+          accessToken,
+        });
         resultUrlRef.current = imageUrl;
-        setState({ status: "success", resultUrl: imageUrl, errorMessage: null });
+        setState({ status: "success", resultUrl: imageUrl, errorMessage: null, paymentRequired: false });
       } catch (error) {
+        const kind = (error as TryOnError | undefined)?.kind;
         setState({
           status: "error",
           resultUrl: null,
           errorMessage: tryOnErrorMessage(error),
+          paymentRequired: kind === "payment-required",
         });
       }
     },

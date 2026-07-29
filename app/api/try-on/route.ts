@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { TRY_ON_UPSTREAM_TIMEOUT_MS } from "@/lib/constants";
+import { getSupabaseAdminClient } from "@/lib/supabase/serverAdmin";
 
 export const runtime = "nodejs";
 export const maxDuration = 120; // seconds (Vercel function limit)
+
+const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
 /**
  * Server-side proxy to the n8n virtual try-on webhook.
@@ -14,8 +17,41 @@ export const maxDuration = 120; // seconds (Vercel function limit)
  *
  * Contract: multipart/form-data with `image1` (person) and `image2` (garment).
  * Returns the upstream binary image on success.
+ *
+ * This route is the real paywall enforcement boundary (client-side gating in
+ * RequireAuth is UX only). It re-reads the live `subscriptions` row on every
+ * request via the service-role client, so a lapsed subscription is blocked
+ * on the very next call regardless of whether the caller's access token has
+ * expired yet or whether best-effort session revocation has landed.
  */
 export async function POST(req: Request) {
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) {
+    return NextResponse.json({ error: "Sign in to use try-on." }, { status: 401 });
+  }
+
+  const admin = getSupabaseAdminClient();
+  const { data: userData, error: userError } = await admin.auth.getUser(token);
+  if (userError || !userData.user) {
+    return NextResponse.json({ error: "Sign in to use try-on." }, { status: 401 });
+  }
+
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("status")
+    .eq("user_id", userData.user.id)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!sub || !ACTIVE_STATUSES.has(sub.status)) {
+    return NextResponse.json(
+      { error: "An active subscription is required to use try-on.", code: "PAYMENT_REQUIRED" },
+      { status: 402 },
+    );
+  }
+
   const webhookUrl = process.env.TRYON_WEBHOOK_URL;
   if (!webhookUrl) {
     return NextResponse.json(

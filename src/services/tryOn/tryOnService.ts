@@ -13,7 +13,8 @@ function fail(error: TryOnError): never {
 export async function generate({
   personFile,
   garmentFile,
-}: TryOnRequest): Promise<TryOnResult> {
+  accessToken,
+}: TryOnRequest & { accessToken: string }): Promise<TryOnResult> {
   const form = new FormData();
   form.append("image1", personFile); // person
   form.append("image2", garmentFile); // garment
@@ -22,6 +23,7 @@ export async function generate({
   try {
     res = await fetch("/api/try-on", {
       method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
       body: form,
       signal: AbortSignal.timeout(TRY_ON_CLIENT_TIMEOUT_MS),
     });
@@ -31,6 +33,7 @@ export async function generate({
   }
 
   if (res.status === 504) fail({ kind: "timeout" });
+  if (res.status === 402) fail({ kind: "payment-required" });
   if (!res.ok) fail({ kind: "server", status: res.status });
 
   const blob = await res.blob();

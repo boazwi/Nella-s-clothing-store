@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { paymentsService } from "@/services/payments";
 import { loginSchema, registerSchema } from "@/lib/validation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -65,11 +66,17 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     try {
       if (isLogin) {
         await login(values.email, values.password);
+        const next = searchParams.get("next") || "/";
+        router.push(next);
       } else {
-        await signUp(values.fullName ?? "", values.email, values.password);
+        const session = await signUp(values.fullName ?? "", values.email, values.password);
+        // Full navigation (not router.push) — leaving the app entirely for
+        // Stripe's hosted subscription checkout.
+        window.location.href = paymentsService.buildCheckoutUrl(
+          session.user.id,
+          session.user.email,
+        );
       }
-      const next = searchParams.get("next") || "/";
-      router.push(next);
     } catch (error) {
       setSubmitError(friendlyAuthError(error, isLogin));
     }
