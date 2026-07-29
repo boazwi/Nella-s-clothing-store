@@ -48,6 +48,64 @@ decisions that are easy to forget.
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Set in `.env.local` **and** Vercel (Production +
   Preview), same rules as `TRYON_WEBHOOK_URL`.
 
+## Paywall — $9.99/month Stripe subscription gating try-on
+- Try-on requires an **active subscription**. After signup, `AuthForm` does a full
+  navigation (`window.location.href`, not `router.push`) to the Stripe **Payment
+  Link** (`NEXT_PUBLIC_STRIPE_PAYMENT_LINK_URL`), appending
+  `client_reference_id=<supabase user id>&prefilled_email=<email>` via
+  `paymentsService.buildCheckoutUrl()` (`src/services/payments/`) so the webhook
+  can correlate the payment back to the user.
+- **Source of truth**: `app/api/stripe/webhook/route.ts` (subscribed to
+  `checkout.session.completed`, `invoice.payment_succeeded`,
+  `invoice.payment_failed`, `customer.subscription.updated`,
+  `customer.subscription.deleted`). Upserts `public.subscriptions` (one row per
+  Stripe subscription, reuses Stripe's own status enum verbatim), appends an
+  audit row to `public.payments` (idempotent on `stripe_event_id`), and mirrors
+  status onto the user's `app_metadata` (`paid`, `subscription_status`) — UX
+  signal only, never trusted server-side.
+- **Revocation policy**: access is revoked on `customer.subscription.updated`
+  transitioning to a non-active status (`past_due`/`unpaid`/`canceled`/etc.), not
+  on the first `invoice.payment_failed` — Stripe's Smart Retries can recover a
+  transient decline while the subscription still reads `active`, so acting on
+  `subscription.updated` avoids over-eager revocation on a one-off card blip.
+  This is a one-line change (`app/api/stripe/webhook/route.ts`) if a zero-grace
+  policy is ever wanted instead.
+- **Real enforcement is server-side, not client-side**: `app/api/try-on/route.ts`
+  requires `Authorization: Bearer <access_token>`, verifies it via
+  `getSupabaseAdminClient().auth.getUser(token)` (a live lookup, not local JWT
+  decode), then re-reads the **live** `subscriptions` row for that user on every
+  single request (401 unauthenticated, 402 not subscribed/lapsed). This is what
+  actually blocks a lapsed subscriber — it doesn't depend on the client's token
+  being expired or on session revocation having succeeded.
+- **Client-side gating is UX only**: `RequireAuth` (`src/components/auth/`) has a
+  `requirePaid` prop mirroring `requireAdmin`, redirecting to
+  `/payment-required` when `AuthContext.isPaid` is false. `isPaid` is populated
+  by calling `GET /api/me/subscription` (Bearer-token auth), never derived from
+  client-held session state.
+- **Forced logout on lapse**: the webhook best-effort deletes the user's
+  `auth.sessions` rows (`src/lib/supabase/revokeSessions.ts`) — this is
+  unverified/best-effort (supabase-js has no first-class "revoke all sessions
+  for a user id" call) and wrapped in try/catch; if it silently no-ops, the
+  server-side check above still blocks access on the next try-on call
+  regardless. Lowering the Supabase Auth **access-token TTL** (dashboard
+  setting, not code) tightens how fast the UI visibly reflects the logout.
+- **Data is locked down**: `subscriptions` and `payments` (first real Postgres
+  tables in this project, via one Supabase migration) have RLS **enabled with
+  zero policies** for `anon`/`authenticated` — only the service-role client
+  (`src/lib/supabase/serverAdmin.ts`, `SUPABASE_SERVICE_ROLE_KEY`) can read or
+  write either table. `GET /api/me/subscription` is the *only* sanctioned path
+  from the client to this data, returning just `{status, currentPeriodEnd}` for
+  the `/payment-required` "why was I logged out" messaging — never a direct
+  client-side Supabase query against these tables.
+- **Stripe test mode** currently (account "boaz sandbox"). Switching to live is
+  config-only: create a live Product/Price/Payment Link/webhook, swap the four
+  env vars below, no code changes.
+- New env vars (server-only unless noted): `STRIPE_SECRET_KEY`,
+  `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and
+  `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_URL` (public). Same dual-registration rule as
+  `TRYON_WEBHOOK_URL` — `.env.local` **and** Vercel (Production + Preview), fresh
+  deploy required for Vercel changes to take effect.
+
 ## Placeholders this release (behind swappable service interfaces)
 - **Products** — in-memory seed in `src/services/products` (resets on reload).
 - DB persistence / payments / Vercel storage are future scope. Swap the single

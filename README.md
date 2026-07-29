@@ -24,6 +24,10 @@ Open http://localhost:3000.
 | `TRYON_WEBHOOK_URL` | **Server only** | n8n virtual try-on webhook. Called by `app/api/try-on/route.ts`; never exposed to the browser. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Public (browser) | Supabase project API URL, used by the auth client. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public (browser) | Supabase publishable/anon key. Safe to expose — access is governed by RLS. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** | Bypasses RLS. Used only in `src/lib/supabase/serverAdmin.ts` for the Stripe webhook and the try-on entitlement check. Never expose to the browser. |
+| `STRIPE_SECRET_KEY` | **Server only** | Stripe SDK client in `app/api/stripe/webhook/route.ts`. |
+| `STRIPE_WEBHOOK_SECRET` | **Server only** | Verifies the Stripe webhook signature. |
+| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_URL` | Public (browser) | The recurring $9.99/month Stripe Payment Link, used to build the checkout URL after signup. |
 
 Set these in **both** places — they're independent:
 - Locally: `.env.local` (gitignored, not deployed).
@@ -62,6 +66,33 @@ remains only as a test double).
 - **Email confirmation is disabled** (immediate login) — a Supabase dashboard
   setting (Authentication → Sign In / Providers → Email → "Confirm email" off).
 - Session persists in the browser and syncs via `onAuthStateChange`.
+
+## Paywall (Stripe subscription)
+
+Try-on requires an active **$9.99/month subscription**, paid via a Stripe Payment Link.
+
+1. After signup, the browser redirects to the Stripe Payment Link with
+   `client_reference_id`/`prefilled_email` appended so the webhook can match the
+   payment to the Supabase user.
+2. `POST /api/stripe/webhook` (subscribed to `checkout.session.completed`,
+   `invoice.payment_succeeded`, `invoice.payment_failed`,
+   `customer.subscription.updated`, `customer.subscription.deleted`) is the source
+   of truth: it upserts the `subscriptions` table, appends an audit row to
+   `payments`, and mirrors status onto the user's `app_metadata`.
+3. Stripe redirects back to `/payment-success`, which refreshes the session and
+   routes to `/try-on`.
+4. **Real enforcement is server-side**: `app/api/try-on/route.ts` verifies the
+   caller's Bearer token and re-reads the *live* `subscriptions` row on every
+   request (401 unauthenticated, 402 not subscribed/lapsed). Client-side gating
+   (`RequireAuth requirePaid`, redirecting to `/payment-required`) is UX only.
+5. On a lapse (`past_due`/`canceled`/`unpaid`), the webhook flips `app_metadata`
+   and best-effort revokes sessions (`src/lib/supabase/revokeSessions.ts`) — access
+   is blocked immediately regardless of whether that revocation succeeds, since
+   step 4 checks live DB state on every try-on call.
+6. `subscriptions` and `payments` have **RLS enabled with zero client policies** —
+   only the service-role key (`src/lib/supabase/serverAdmin.ts`) can read or write
+   them. `GET /api/me/subscription` is the only sanctioned path from the client to
+   this data (status + renewal date only, for the `/payment-required` messaging).
 
 ## Placeholders (this release)
 
